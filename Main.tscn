@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://w8r2da4itbi3" path="res://gun.gd" id="1_gun"]
 [ext_resource type="AudioStream" uid="uid://bi0yac7hnhrhi" path="res://sfx_pistol_fire.mp3" id="2_sfx"]
 [ext_resource type="Script" uid="uid://wtbocb601117" path="res://player.gd" id="3_player"]
+[ext_resource type="Script" path="res://crosshair.gd" id="4_crosshair"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_sky"]
 sky_top_color = Color(0.45, 0.58, 0.78, 1)
@@ -364,3 +365,6 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.06)
 light_color = Color(1, 0.88, 0.6, 1)
 light_energy = 0.0
 omni_range = 4.0
+
+[node name="准星_Crosshair" type="CanvasLayer" parent="."]
+script = ExtResource("4_crosshair")

@@ -9,11 +9,22 @@ enum FireMode { SEMI, AUTO }
 
 @export_group("腰射姿态 Hip")
 @export var hip_position: Vector3 = Vector3(0.13, -0.196, -0.46)  # 枪在相机空间的位置（z 越远枪越小；y 让枪底贴着屏幕底边）
-@export var hip_rotation_degrees: Vector3 = Vector3(0, 8, 0)      # 略微向内偏，枪口朝屏幕中心
 
 @export_group("开镜姿态 ADS")
-@export var ads_position: Vector3 = Vector3(0, -0.030, -0.22)     # y = -照门中心y，让瞄准轴对齐相机中心线；z 越远枪越小
-@export var ads_rotation_degrees: Vector3 = Vector3(0, 0, 0)      # 摆正，照门对上屏幕中心
+@export var ads_position: Vector3 = Vector3(0, -0.030, -0.22)     # 枪在相机空间的位置（开镜时把枪拉回屏幕中间）
+
+@export_group("归零 Zero")
+@export var zero_distance: float = 30.0   # 归零距离（米）：枪口射线在这个距离正好穿过准星轴；设小则近距离会更偏下
+
+@export_group("散布 Spread")
+@export var spread_enabled: bool = true               # 散布总开关
+@export var spread_min_deg: float = 0.25              # 单发最小散布（锥半角，度）：每发都有的基础误差
+@export var spread_per_shot_deg: float = 0.30         # 每发叠加（越打越散）
+@export var spread_max_deg: float = 3.0               # 最大散布（上限）
+@export var spread_recovery_deg_per_sec: float = 4.0  # 停火后往"最小散布"回落的速度
+@export var spread_move_mult: float = 2.0             # 移动时的散布倍率（跑动 > 站立）
+@export var spread_run_speed: float = 5.0             # 移速到这个值就吃满移动倍率
+@export var spread_ads_mult: float = 0.2              # 开镜时的散布倍率（举镜 = 更准）
 
 @export_group("镜头缩放 FOV")
 @export var hip_fov: float = 80.0   # 腰射：视野更广（数值越大看得越宽）
@@ -32,11 +43,12 @@ enum FireMode { SEMI, AUTO }
 @export var recoil_max_deg: float = 12.0          # 累积上限，兜底
 
 @export_group("武器后坐 Weapon Kick")
-@export var weapon_kick_up_deg: float = 4.5           # 开火瞬间枪口上抬（度）——枪自己动，比准心更"猛"
-@export var weapon_kick_side_deg: float = 1.8         # 水平摆动幅度（度），方向跟着这一发的弹道偏移
+# 塔科夫式：枪身是"整体后退"（平移），不是绕握把上翘 —— 只沿瞄准轴后退，照门/准星的"两点一线"不会被破坏
+@export var weapon_kick_back: float = 0.03            # 每发沿枪管方向后退（米）：正值往射手方向推
+@export var weapon_kick_up: float = 0.0               # 每发上移（米）：注意会轻微破坏两点一线，默认 0
 @export var weapon_kick_recovery_speed: float = 22.0  # 枪"顿"到位的快慢（越大越瞬间）
 @export var weapon_kick_return_speed: float = 9.0     # 枪回正的快慢（比相机快 → 枪比准心先回来）
-@export var weapon_kick_max_deg: float = 10.0         # 累积上限，兜底
+@export var weapon_kick_max: float = 0.08             # 位移上限（米），兜底
 
 @export_group("镜头抖动 Camera Shake")
 @export var shake_enabled: bool = true                 # 总开关（COD 里也是可关闭的设置项）
@@ -64,6 +76,13 @@ enum FireMode { SEMI, AUTO }
 @export_group("过渡")
 @export var aim_switch_time: float = 0.15   # 两种姿态之间的切换时长（秒）
 
+@export_group("激光 Laser")
+@export var laser_enabled: bool = true                          # 激光开关
+@export var laser_color: Color = Color(1.0, 0.12, 0.1, 0.85)    # 激光颜色（含透明度）
+@export var laser_width: float = 0.006                          # 激光束直径（米）
+@export var laser_max_distance: float = 100.0                   # 没打到东西时的最大长度（米）
+@export var laser_dot_size: float = 0.025                       # 命中点光点直径（米），0 = 不画
+
 var is_aiming: bool = false                 # false = 腰射，true = 开镜
 var _auto_firing: bool = false              # 连发时：开火键是否仍按着
 var _auto_timer: float = 0.0                # 连发计时器
@@ -73,18 +92,22 @@ var _auto_timer: float = 0.0                # 连发计时器
 @onready var weapon_recoil: Node3D = $"玩家_Player/俯仰_PitchPivot/Camera3D/手枪_Pistol/武器后坐_RecoilPivot"
 @onready var animation_player: AnimationPlayer = $"玩家_Player/俯仰_PitchPivot/Camera3D/手枪_Pistol/武器后坐_RecoilPivot/动画播放器_AnimationPlayer"
 @onready var fire_sound: AudioStreamPlayer = $"玩家_Player/俯仰_PitchPivot/Camera3D/手枪_Pistol/武器后坐_RecoilPivot/开火音效_FireSound"
-@onready var raycast: RayCast3D = $"玩家_Player/俯仰_PitchPivot/Camera3D/射线_RayCast"
+@onready var player_body: CharacterBody3D = $"玩家_Player"
+@onready var crosshair = $"准星_Crosshair"
 @onready var muzzle_flash: Node3D = $"玩家_Player/俯仰_PitchPivot/Camera3D/手枪_Pistol/武器后坐_RecoilPivot/枪口火焰_MuzzleFlash"
 @onready var flash_mesh: MeshInstance3D = $"玩家_Player/俯仰_PitchPivot/Camera3D/手枪_Pistol/武器后坐_RecoilPivot/枪口火焰_MuzzleFlash/闪光_FlashMesh"
 @onready var flash_light: OmniLight3D = $"玩家_Player/俯仰_PitchPivot/Camera3D/手枪_Pistol/武器后坐_RecoilPivot/枪口火焰_MuzzleFlash/闪光灯_FlashLight"
 
 var _aim_tween: Tween                       # 记录正在跑的过渡，切换时冲掉旧的
+var _hip_rot: Vector3 = Vector3.ZERO        # 归零反解出的腰射枪口姿态（度）
+var _ads_rot: Vector3 = Vector3.ZERO        # 归零反解出的开镜枪口姿态（度）
+var _spread_deg: float = 0.0                # 当前散布累积值（锥半角，度）：开火累加、停火回落
 
 var _camera_base_rot: Vector3 = Vector3.ZERO    # 相机基础朝向（相机现在只承载"后坐力"偏移，所以恒为 0；留着以防以后改层级）
 var _recoil_target: Vector2 = Vector2.ZERO      # 后坐目标：x = 上抬，y = 左右
 var _recoil_current: Vector2 = Vector2.ZERO     # 当前实际后坐
-var _weapon_kick: Vector3 = Vector3.ZERO        # 武器自身后坐（度）：x = 枪口上抬，y = 左右摆
-var _weapon_kick_target: Vector3 = Vector3.ZERO # 武器后坐的目标值（同上）
+var _weapon_kick: Vector3 = Vector3.ZERO        # 武器自身后坐的位移（米）：本地空间里 y = 上移，z = 后退
+var _weapon_kick_target: Vector3 = Vector3.ZERO # 武器后坐位移的目标值（同上）
 var _trauma: float = 0.0                        # 镜头抖动的"创伤值"（0~1）：开火累加，随时间自动衰减
 var _shake_time: float = 0.0                    # 噪声采样的时间轴
 var _shake_offset: Vector3 = Vector3.ZERO       # 当前抖动偏移（度）：x=俯仰 y=偏航 z=翻滚
@@ -94,10 +117,17 @@ var _smoke_mesh: QuadMesh                       # 烟团的共享网格（大小
 var _smoke_tex: GradientTexture2D               # 烟团的径向渐变贴图（程序生成）
 var _bullet_hole_mesh: QuadMesh                 # 共享网格（省内存）
 var _bullet_hole_mat: StandardMaterial3D        # 共享材质
+var _laser_beam: MeshInstance3D                 # 激光束（一根细圆柱，从枪口指向命中点）
+var _laser_dot: MeshInstance3D                  # 命中点的光点
 
 func _ready() -> void:
+	# 枪口姿态由"归零距离"综合反解：让枪口射线在 zero_distance 处正好穿过准星轴
+	_hip_rot = _solve_zero_rotation(hip_position)
+	_ads_rot = _solve_zero_rotation(ads_position)
 	# 初始化为腰射姿态（默认模式）
-	_apply_pose(hip_position, hip_rotation_degrees)
+	_apply_pose(hip_position, _hip_rot)
+	# 散布从"单发最小散布"起步
+	_spread_deg = spread_min_deg
 	# 腰射视野
 	camera.fov = hip_fov
 	# 记住相机基础朝向：后坐力是"叠加"在它之上的偏移
@@ -132,6 +162,37 @@ func _ready() -> void:
 	_smoke_tex = _make_radial_texture(Color(0.8, 0.8, 0.82, 1.0), Color(0.6, 0.6, 0.63, 0.0))
 	_smoke_mesh = QuadMesh.new()
 	_smoke_mesh.size = Vector2(1, 1)
+
+	# ---- 激光：一根从枪口射出的细圆柱 + 命中点光点（跟着枪口朝向走，用来直观看弹道）----
+	var laser_mat := StandardMaterial3D.new()
+	laser_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED   # 不受光照，暗处也看得见
+	laser_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	laser_mat.albedo_color = laser_color
+	laser_mat.disable_receive_shadows = true
+
+	# 光束：高度固定 1 米，真实长度靠节点缩放沿 Y 拉伸
+	var beam_mesh := CylinderMesh.new()
+	beam_mesh.top_radius = laser_width * 0.5
+	beam_mesh.bottom_radius = laser_width * 0.5
+	beam_mesh.height = 1.0
+	beam_mesh.radial_segments = 8
+	beam_mesh.rings = 0
+	_laser_beam = MeshInstance3D.new()
+	_laser_beam.mesh = beam_mesh
+	_laser_beam.material_override = laser_mat
+	# 圆柱默认沿本地 Y 轴；绕 X 转 -90° 让它对准枪口前方（-Z）
+	# 挂成枪口的子节点 → 起点天生贴住枪口，朝向就是枪口朝向，不会再脱离
+	_laser_beam.rotation_degrees = Vector3(-90, 0, 0)
+	muzzle_flash.add_child(_laser_beam)
+
+	# 命中点的小光点
+	var dot_mesh := SphereMesh.new()
+	dot_mesh.radius = laser_dot_size * 0.5
+	dot_mesh.height = laser_dot_size
+	_laser_dot = MeshInstance3D.new()
+	_laser_dot.mesh = dot_mesh
+	_laser_dot.material_override = laser_mat
+	muzzle_flash.add_child(_laser_dot)
 
 
 # 程序生成一张"中心实、边缘透明"的径向渐变贴图
@@ -177,10 +238,14 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _physics_process(delta: float) -> void:
+	# 停火时散布往"最小散布"回落
+	if spread_enabled:
+		_spread_deg = move_toward(_spread_deg, spread_min_deg, spread_recovery_deg_per_sec * delta)
 	# 先更新后坐力与镜头抖动，再决定要不要开火（保证"这一枪用的是当前准心"）
 	_update_recoil(delta)
 	_update_shake(delta)
 	_apply_camera_rotation()   # 相机的最终朝向在这里一次性写入
+	_update_laser()            # 相机朝向定好后，再刷新激光（保证和本帧准心一致）
 	# 枪口火焰到点就关掉（真实枪口焰只有几毫秒，屏幕上亮 2~3 帧就够）
 	if _flash_timer > 0.0:
 		_flash_timer -= delta
@@ -195,7 +260,12 @@ func _physics_process(delta: float) -> void:
 			_shoot()
 
 
-# 打一发：先打准心方向那一发（弹痕），再加后坐力，最后播套筒动画 + 音效
+func _process(_delta: float) -> void:
+	# 动态准心：每帧把"当前散布"换算成屏幕半径推给准星
+	_update_crosshair()
+
+
+# 打一发：先按"这一发之前"的散布打一发（弹痕），再加后坐力、叠加散布，最后播套筒动画 + 音效
 func _shoot() -> void:
 	_spawn_bullet_hole()
 	_add_recoil_kick()
@@ -204,6 +274,8 @@ func _shoot() -> void:
 	_spawn_smoke()
 	animation_player.play("fire")
 	fire_sound.play()
+	# 每打一发，散布往上叠（越打越散），到上限为止
+	_spread_deg = minf(_spread_deg + spread_per_shot_deg, spread_max_deg)
 
 
 # 后坐力回复：业内标准的"两段 lerp"
@@ -215,12 +287,12 @@ func _update_recoil(delta: float) -> void:
 	# 上抬 = 相机绕 X 轴**正向**转（Godot 里 +X 是抬头，-X 是低头）；左右 = 绕 Y 轴
 	# 这里只算出偏移值，真正写进相机的是 _apply_camera_rotation()（后坐 + 抖动一起叠）
 
-	# ---- 第二层：武器自身后坐（枪模型自己转，和相机互不干扰）----
+	# ---- 第二层：武器自身后坐（枪模型整体后退/上移，不旋转，和相机互不干扰）----
 	# 和相机同一套"两段 lerp"，只是用武器自己的一套速度参数（更猛、回得更快）
 	_weapon_kick = _weapon_kick.lerp(_weapon_kick_target, clampf(weapon_kick_recovery_speed * delta, 0.0, 1.0))
 	_weapon_kick_target = _weapon_kick_target.lerp(Vector3.ZERO, clampf(weapon_kick_return_speed * delta, 0.0, 1.0))
-	# 枪的朝向也是 -Z，和相机符号规则相同：+X 就是枪口上抬；+Y 是枪口往右摆
-	weapon_recoil.rotation_degrees = _weapon_kick
+	# 只做平移、绝不旋转 → 枪的朝向始终等于归零姿态，照门/准星的两点一线不会被顶歪
+	weapon_recoil.position = _weapon_kick
 
 
 # 把"基础朝向 + 后坐力 + 镜头抖动"一次性写进相机
@@ -231,6 +303,90 @@ func _apply_camera_rotation() -> void:
 		+ Vector3(_recoil_current.x, _recoil_current.y, 0.0)
 		+ _shake_offset
 	)
+
+
+# 从枪口沿枪口真实朝向（-Z）打一条"中心"射线（不含散布）：激光用它当瞄准基准
+func _cast_muzzle_ray() -> Dictionary:
+	muzzle_flash.force_update_transform()
+	return _raycast_from(muzzle_flash.global_position, -muzzle_flash.global_transform.basis.z.normalized())
+
+
+# 从某点沿某方向打一条物理射线，返回命中信息
+func _raycast_from(origin: Vector3, dir: Vector3) -> Dictionary:
+	var to: Vector3 = origin + dir * laser_max_distance
+	var params := PhysicsRayQueryParameters3D.create(origin, to)
+	params.exclude = [player_body.get_rid()]   # 别打到自己身上
+	var res := get_world_3d().direct_space_state.intersect_ray(params)
+	var hit: bool = not res.is_empty()
+	return {
+		"origin": origin,
+		"dir": dir,
+		"to": to,
+		"hit": hit,
+		"point": (res.position if hit else to),
+		"normal": (res.normal if hit else Vector3.ZERO),
+		"collider": (res.collider if hit else null),
+	}
+
+
+# 当前"有效散布"（度）：在累积值上乘姿态系数（移动越散、开镜更准）
+func _current_spread_deg() -> float:
+	if not spread_enabled:
+		return 0.0
+	var s: float = _spread_deg
+	# 移动系数：原地 = 1，跑到 spread_run_speed 时吃满 spread_move_mult
+	var hspeed: float = Vector2(player_body.velocity.x, player_body.velocity.z).length()
+	var move_t: float = clampf(hspeed / maxf(spread_run_speed, 0.001), 0.0, 1.0)
+	s *= lerpf(1.0, spread_move_mult, move_t)
+	# 开镜更准
+	if is_aiming:
+		s *= spread_ads_mult
+	return s
+
+
+# 把中心方向随机偏到"散布圆锥"内的一个方向（圆盘内均匀采样）
+func _spread_direction(center: Vector3, spread_deg: float) -> Vector3:
+	if spread_deg <= 0.0:
+		return center
+	var up: Vector3 = Vector3.UP
+	if absf(center.dot(up)) > 0.99:
+		up = Vector3.RIGHT
+	var x_axis: Vector3 = up.cross(center).normalized()
+	var y_axis: Vector3 = center.cross(x_axis).normalized()
+	var ang: float = deg_to_rad(spread_deg)
+	var phi: float = randf() * TAU                       # 随机方位
+	var rad: float = ang * sqrt(randf())                 # 圆盘内均匀分布
+	return (center * cos(rad) + (cos(phi) * x_axis + sin(phi) * y_axis) * sin(rad)).normalized()
+
+
+# 动态准心：把当前有效散布换算成屏幕半径（像素）推给准星，让它随散布张合
+func _update_crosshair() -> void:
+	if crosshair == null or not crosshair.has_method("set_spread_radius"):
+		return
+	var half_h: float = get_viewport().get_visible_rect().size.y * 0.5
+	# 锥半角 spread 对应的屏幕半径 ≈ tan(spread) / tan(fov/2) * 半屏高（fov 为垂直视野）
+	var px: float = tan(deg_to_rad(_current_spread_deg())) / tan(deg_to_rad(camera.fov * 0.5)) * half_h
+	crosshair.set_spread_radius(px)
+
+
+# 每帧刷新激光：起点在枪口，方向 = 枪口朝向，长度 = 枪口射线打到的距离
+# 激光走"中心射线"（不含散布），作为瞄准基准；子弹才吃散布
+func _update_laser() -> void:
+	if not laser_enabled:
+		_laser_beam.visible = false
+		_laser_dot.visible = false
+		return
+	var ray := _cast_muzzle_ray()
+	var length: float = ray.origin.distance_to(ray.point)
+	# 光柱是枪口子节点、已绕 X 转了 -90°：本地 -Z 就是枪口前方，所以只需沿本地 Y 拉伸
+	_laser_beam.visible = length > 0.001
+	_laser_beam.position = Vector3(0, 0, -length * 0.5)
+	_laser_beam.scale = Vector3(1.0, length, 1.0)
+
+	# 命中点的小光点
+	_laser_dot.visible = ray.hit and laser_dot_size > 0.0
+	if _laser_dot.visible:
+		_laser_dot.position = Vector3(0, 0, -length)
 
 
 # 每发往 trauma 里加一点"创伤"
@@ -326,24 +482,26 @@ func _add_recoil_kick() -> void:
 	# 兜底上限，防止参数调歪后画面乱飞
 	_recoil_target.x = minf(_recoil_target.x, recoil_max_deg)
 
-	# ---- 武器自身后坐：枪口上抬 + 朝"这一发弹道偏移的方向"摆动 ----
-	_weapon_kick_target.x += weapon_kick_up_deg
-	# 把 side_impulse 归一化到 [-1, 1]，再乘摆动幅度 → 枪口摆的方向和这一发弹道偏的方向一致
-	_weapon_kick_target.y += side_impulse / maxf(horizontal_recoil_deg, 0.001) * weapon_kick_side_deg
-	_weapon_kick_target.x = clampf(_weapon_kick_target.x, -weapon_kick_max_deg, weapon_kick_max_deg)
-	_weapon_kick_target.y = clampf(_weapon_kick_target.y, -weapon_kick_max_deg, weapon_kick_max_deg)
+	# ---- 武器自身后坐：整体沿枪管后退（+ 可选上移），是平移不是旋转 ----
+	# 本地 -Z 是枪口方向，所以后退 = +Z；只在瞄准轴上滑动 → 不破坏照门/准星的一线
+	_weapon_kick_target += Vector3(0.0, weapon_kick_up, weapon_kick_back)
+	_weapon_kick_target.y = minf(_weapon_kick_target.y, weapon_kick_max)
+	_weapon_kick_target.z = minf(_weapon_kick_target.z, weapon_kick_max)
 
 
-# 在射线命中点贴一个弹痕小方片
+# 在枪口射线的命中点贴一个弹痕小方片（子弹走枪口真实朝向 + 当前散布）
 func _spawn_bullet_hole() -> void:
-	raycast.force_raycast_update()   # 立刻用当前准心刷新射线
-	if not raycast.is_colliding():
+	# 中心方向不吃散布；子弹方向在中心方向上叠加"当前散布圆锥"内的随机偏移
+	var center := _cast_muzzle_ray()
+	var dir := _spread_direction(center.dir, _current_spread_deg())
+	var ray := _raycast_from(center.origin, dir)
+	if not ray.hit:
 		return
-	var point: Vector3 = raycast.get_collision_point()
-	var normal: Vector3 = raycast.get_collision_normal()
-	var hit_body := raycast.get_collider() as Node3D
+	var hit_body := ray.collider as Node3D
 	if hit_body == null:
 		return
+	var point: Vector3 = ray.point
+	var normal: Vector3 = ray.normal
 	# QuadMesh 正面朝 +Z；要让正面法线贴到墙面，就用 looking_at(-法线)
 	var up: Vector3 = Vector3.FORWARD if absf(normal.y) > 0.9 else Vector3.UP
 	var hole := MeshInstance3D.new()
@@ -361,7 +519,7 @@ func _toggle_aim() -> void:
 	is_aiming = not is_aiming
 	# 根据当前模式选出目标姿态和视野
 	var target_pos: Vector3 = ads_position if is_aiming else hip_position
-	var target_rot: Vector3 = ads_rotation_degrees if is_aiming else hip_rotation_degrees
+	var target_rot: Vector3 = _ads_rot if is_aiming else _hip_rot
 	var target_fov: float = ads_fov if is_aiming else hip_fov
 	_move_pistol(target_pos, target_rot, target_fov)
 
@@ -381,3 +539,22 @@ func _move_pistol(target_pos: Vector3, target_rot_deg: Vector3, target_fov: floa
 func _apply_pose(pos: Vector3, rot_deg: Vector3) -> void:
 	pistol.position = pos
 	pistol.rotation_degrees = rot_deg
+
+
+# 综合反解枪口姿态：让"从枪口出发、指向 zero_distance 处视轴点"的射线穿过准星轴
+# 枪口相对眼位有横向/纵向偏移，所以方向要整体算；改姿态会微移枪口位置，故迭代几次收敛
+func _solve_zero_rotation(pos: Vector3) -> Vector3:
+	var target := Vector3(0.0, 0.0, -zero_distance)   # 相机本地空间里、视轴上、归零距离处的点
+	var rot := Vector3.ZERO
+	for i in range(6):
+		pistol.position = pos
+		pistol.rotation = rot
+		muzzle_flash.force_update_transform()
+		# 在"相机本地空间"里算，结果与相机世界朝向无关（后坐、镜头抖动都不影响这个解）
+		var m: Transform3D = camera.global_transform.affine_inverse() * muzzle_flash.global_transform
+		var dir: Vector3 = (target - m.origin).normalized()
+		rot = Basis.looking_at(dir, Vector3.UP).get_euler()   # 让枪口 -Z 对准 dir
+	# 写回最终姿态，返回度数（与其他姿态参数统一）
+	pistol.position = pos
+	pistol.rotation = rot
+	return pistol.rotation_degrees
