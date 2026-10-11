@@ -1,7 +1,8 @@
 [gd_scene format=3 uid="uid://cgps1qkfntwf5"]
 
 [ext_resource type="Script" uid="uid://w8r2da4itbi3" path="res://gun.gd" id="1_gun"]
-[ext_resource type="AudioStream" path="res://sfx_pistol_fire.mp3" id="2_sfx"]
+[ext_resource type="AudioStream" uid="uid://bi0yac7hnhrhi" path="res://sfx_pistol_fire.mp3" id="2_sfx"]
+[ext_resource type="Script" uid="uid://wtbocb601117" path="res://player.gd" id="3_player"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_sky"]
 sky_top_color = Color(0.45, 0.58, 0.78, 1)
@@ -17,6 +18,62 @@ background_mode = 2
 sky = SubResource("Sky_main")
 ambient_light_source = 3
 ambient_light_energy = 1.2
+
+[sub_resource type="StandardMaterial3D" id="Mat_floor"]
+albedo_color = Color(0.35, 0.36, 0.38, 1)
+roughness = 0.95
+
+[sub_resource type="PlaneMesh" id="Mesh_floor"]
+size = Vector2(100, 100)
+
+[sub_resource type="BoxShape3D" id="Shape_floor"]
+size = Vector3(100, 0.2, 100)
+
+[sub_resource type="StandardMaterial3D" id="Mat_back_wall"]
+albedo_color = Color(0.55, 0.33, 0.3, 1)
+roughness = 0.9
+
+[sub_resource type="BoxMesh" id="Mesh_back_wall"]
+size = Vector3(8, 5, 0.2)
+
+[sub_resource type="BoxShape3D" id="Shape_back_wall"]
+size = Vector3(8, 5, 0.2)
+
+[sub_resource type="QuadMesh" id="Mesh_muzzle_flash"]
+size = Vector2(0.18, 0.18)
+
+[sub_resource type="StandardMaterial3D" id="Mat_target"]
+albedo_color = Color(0.82, 0.76, 0.66, 1)
+roughness = 0.9
+
+[sub_resource type="BoxMesh" id="Mesh_torso"]
+size = Vector3(0.42, 0.7, 0.24)
+
+[sub_resource type="BoxShape3D" id="Shape_torso"]
+size = Vector3(0.42, 0.7, 0.24)
+
+[sub_resource type="SphereMesh" id="Mesh_head"]
+radius = 0.11
+height = 0.22
+
+[sub_resource type="SphereShape3D" id="Shape_head"]
+radius = 0.11
+
+[sub_resource type="BoxMesh" id="Mesh_arm"]
+size = Vector3(0.13, 0.6, 0.14)
+
+[sub_resource type="BoxShape3D" id="Shape_arm"]
+size = Vector3(0.13, 0.6, 0.14)
+
+[sub_resource type="BoxMesh" id="Mesh_leg"]
+size = Vector3(0.16, 0.9, 0.2)
+
+[sub_resource type="BoxShape3D" id="Shape_leg"]
+size = Vector3(0.16, 0.9, 0.2)
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_player"]
+radius = 0.4
+height = 1.8
 
 [sub_resource type="StandardMaterial3D" id="Mat_frame"]
 albedo_color = Color(0.05, 0.05, 0.055, 1)
@@ -100,104 +157,210 @@ _data = {
 &"fire": SubResource("Animation_fire")
 }
 
-[node name="Main" type="Node3D" unique_id=304939665]
+[node name="Main" type="Node3D" unique_id=985669797]
 script = ExtResource("1_gun")
 
-[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1625544435]
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=140450490]
 environment = SubResource("Environment_main")
 
-[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=2074702203]
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=483194712]
 transform = Transform3D(0.86603, 0, 0.5, 0.35355, 0.70711, -0.61237, -0.35355, 0.70711, 0.61237, 0, 6, 0)
 light_energy = 1.3
 shadow_enabled = true
 
-[node name="Camera3D" type="Camera3D" parent="." unique_id=286525352]
+[node name="地板_Floor" type="StaticBody3D" parent="." unique_id=242908600]
+
+[node name="网格_Mesh" type="MeshInstance3D" parent="地板_Floor" unique_id=411362641]
+material_override = SubResource("Mat_floor")
+mesh = SubResource("Mesh_floor")
+
+[node name="碰撞_Collision" type="CollisionShape3D" parent="地板_Floor" unique_id=264281303]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.1, 0)
+shape = SubResource("Shape_floor")
+
+[node name="后墙_BackWall" type="StaticBody3D" parent="." unique_id=1518504633]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, -4)
+
+[node name="网格_Mesh" type="MeshInstance3D" parent="后墙_BackWall" unique_id=1380931131]
+material_override = SubResource("Mat_back_wall")
+mesh = SubResource("Mesh_back_wall")
+
+[node name="碰撞_Collision" type="CollisionShape3D" parent="后墙_BackWall" unique_id=1468227108]
+shape = SubResource("Shape_back_wall")
+
+[node name="人形靶_Target" type="StaticBody3D" parent="." unique_id=760919552]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -2)
+
+[node name="躯干_Torso" type="MeshInstance3D" parent="人形靶_Target" unique_id=990178369]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.25, 0)
+material_override = SubResource("Mat_target")
+mesh = SubResource("Mesh_torso")
+
+[node name="躯干碰撞_TorsoShape" type="CollisionShape3D" parent="人形靶_Target" unique_id=1471345765]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.25, 0)
+shape = SubResource("Shape_torso")
+
+[node name="头_Head" type="MeshInstance3D" parent="人形靶_Target" unique_id=1404124458]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.69, 0)
+material_override = SubResource("Mat_target")
+mesh = SubResource("Mesh_head")
+
+[node name="头碰撞_HeadShape" type="CollisionShape3D" parent="人形靶_Target" unique_id=1206739066]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.69, 0)
+shape = SubResource("Shape_head")
+
+[node name="左臂_LeftArm" type="MeshInstance3D" parent="人形靶_Target" unique_id=1375326326]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.275, 1.2, 0)
+material_override = SubResource("Mat_target")
+mesh = SubResource("Mesh_arm")
+
+[node name="左臂碰撞_LeftArmShape" type="CollisionShape3D" parent="人形靶_Target" unique_id=1947705864]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.275, 1.2, 0)
+shape = SubResource("Shape_arm")
+
+[node name="右臂_RightArm" type="MeshInstance3D" parent="人形靶_Target" unique_id=2112316622]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.275, 1.2, 0)
+material_override = SubResource("Mat_target")
+mesh = SubResource("Mesh_arm")
+
+[node name="右臂碰撞_RightArmShape" type="CollisionShape3D" parent="人形靶_Target" unique_id=759279467]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.275, 1.2, 0)
+shape = SubResource("Shape_arm")
+
+[node name="左腿_LeftLeg" type="MeshInstance3D" parent="人形靶_Target" unique_id=584763145]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.1, 0.45, 0)
+material_override = SubResource("Mat_target")
+mesh = SubResource("Mesh_leg")
+
+[node name="左腿碰撞_LeftLegShape" type="CollisionShape3D" parent="人形靶_Target" unique_id=193204745]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.1, 0.45, 0)
+shape = SubResource("Shape_leg")
+
+[node name="右腿_RightLeg" type="MeshInstance3D" parent="人形靶_Target" unique_id=1179204955]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.1, 0.45, 0)
+material_override = SubResource("Mat_target")
+mesh = SubResource("Mesh_leg")
+
+[node name="右腿碰撞_RightLegShape" type="CollisionShape3D" parent="人形靶_Target" unique_id=2000686174]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.1, 0.45, 0)
+shape = SubResource("Shape_leg")
+
+[node name="玩家_Player" type="CharacterBody3D" parent="." unique_id=1263126703]
+script = ExtResource("3_player")
+
+[node name="碰撞_Collision" type="CollisionShape3D" parent="玩家_Player" unique_id=672149675]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+shape = SubResource("CapsuleShape3D_player")
+
+[node name="俯仰_PitchPivot" type="Node3D" parent="玩家_Player" unique_id=53439974]
+
+[node name="Camera3D" type="Camera3D" parent="玩家_Player/俯仰_PitchPivot" unique_id=295023660]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, 0)
 current = true
 
-[node name="ViewModelLight" type="OmniLight3D" parent="Camera3D" unique_id=1789420482]
+[node name="射线_RayCast" type="RayCast3D" parent="玩家_Player/俯仰_PitchPivot/Camera3D" unique_id=2018907110]
+target_position = Vector3(0, 0, -100)
+
+[node name="ViewModelLight" type="OmniLight3D" parent="玩家_Player/俯仰_PitchPivot/Camera3D" unique_id=674208560]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.35, 0.3, 0.15)
 light_energy = 3.0
 omni_range = 2.0
 
-[node name="手枪_Pistol" type="Node3D" parent="Camera3D" unique_id=2086631192]
+[node name="手枪_Pistol" type="Node3D" parent="玩家_Player/俯仰_PitchPivot/Camera3D" unique_id=2067017964]
 transform = Transform3D(0.99026805, 0, -0.1391731, 0, 1, 0, 0.1391731, 0, 0.99026805, 0.13, -0.196, -0.46)
 
-[node name="枪身_Frame" type="MeshInstance3D" parent="Camera3D/手枪_Pistol" unique_id=468711689]
+[node name="武器后坐_RecoilPivot" type="Node3D" parent="玩家_Player/俯仰_PitchPivot/Camera3D/手枪_Pistol" unique_id=771904402]
+
+[node name="枪身_Frame" type="MeshInstance3D" parent="玩家_Player/俯仰_PitchPivot/Camera3D/手枪_Pistol/武器后坐_RecoilPivot" unique_id=44469459]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.013, -0.072)
 material_override = SubResource("Mat_frame")
 mesh = SubResource("Mesh_frame")
 
-[node name="导轨_Rail" type="MeshInstance3D" parent="Camera3D/手枪_Pistol" unique_id=340445220]
+[node name="导轨_Rail" type="MeshInstance3D" parent="玩家_Player/俯仰_PitchPivot/Camera3D/手枪_Pistol/武器后坐_RecoilPivot" unique_id=1377753675]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.03, -0.13)
 material_override = SubResource("Mat_frame")
 mesh = SubResource("Mesh_rail")
 
-[node name="护圈前_TriggerGuardFront" type="MeshInstance3D" parent="Camera3D/手枪_Pistol" unique_id=177778313]
+[node name="护圈前_TriggerGuardFront" type="MeshInstance3D" parent="玩家_Player/俯仰_PitchPivot/Camera3D/手枪_Pistol/武器后坐_RecoilPivot" unique_id=1891651157]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.047, -0.07)
 material_override = SubResource("Mat_frame")
 mesh = SubResource("Mesh_guard_front")
 
-[node name="护圈底_TriggerGuardBottom" type="MeshInstance3D" parent="Camera3D/手枪_Pistol" unique_id=606953392]
+[node name="护圈底_TriggerGuardBottom" type="MeshInstance3D" parent="玩家_Player/俯仰_PitchPivot/Camera3D/手枪_Pistol/武器后坐_RecoilPivot" unique_id=353407832]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.063, -0.042)
 material_override = SubResource("Mat_frame")
 mesh = SubResource("Mesh_guard_bottom")
 
-[node name="护圈后_TriggerGuardRear" type="MeshInstance3D" parent="Camera3D/手枪_Pistol" unique_id=2093992061]
+[node name="护圈后_TriggerGuardRear" type="MeshInstance3D" parent="玩家_Player/俯仰_PitchPivot/Camera3D/手枪_Pistol/武器后坐_RecoilPivot" unique_id=2004991812]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.045, -0.014)
 material_override = SubResource("Mat_frame")
 mesh = SubResource("Mesh_guard_rear")
 
-[node name="扳机_Trigger" type="MeshInstance3D" parent="Camera3D/手枪_Pistol" unique_id=2126670935]
+[node name="扳机_Trigger" type="MeshInstance3D" parent="玩家_Player/俯仰_PitchPivot/Camera3D/手枪_Pistol/武器后坐_RecoilPivot" unique_id=1725058593]
 transform = Transform3D(1, 0, 0, 0, 0.8630746, -0.50507647, 0, 0.50507647, 0.8630746, 0, -0.035805866, -0.03606949)
 material_override = SubResource("Mat_frame")
 mesh = SubResource("Mesh_trigger")
 
-[node name="握把_Grip" type="MeshInstance3D" parent="Camera3D/手枪_Pistol" unique_id=968946390]
+[node name="握把_Grip" type="MeshInstance3D" parent="玩家_Player/俯仰_PitchPivot/Camera3D/手枪_Pistol/武器后坐_RecoilPivot" unique_id=163300280]
 transform = Transform3D(1, 0, 0, 0, 0.89100736, 0.45398885, 0, -0.45398885, 0.89100736, 0, -0.060811862, 0.015356556)
 material_override = SubResource("Mat_grip")
 mesh = SubResource("Mesh_grip")
 
-[node name="弹匣底板_MagBase" type="MeshInstance3D" parent="Camera3D/手枪_Pistol" unique_id=1727472322]
+[node name="弹匣底板_MagBase" type="MeshInstance3D" parent="玩家_Player/俯仰_PitchPivot/Camera3D/手枪_Pistol/武器后坐_RecoilPivot" unique_id=2090232770]
 transform = Transform3D(1, 0, 0, 0, 0.8910111, 0.45399082, 0, -0.45399082, 0.8910111, 0, -0.113053046, 0.04174637)
 material_override = SubResource("Mat_frame")
 mesh = SubResource("Mesh_mag_base")
 
-[node name="空仓挂机_SlideRelease" type="MeshInstance3D" parent="Camera3D/手枪_Pistol" unique_id=1117963883]
+[node name="空仓挂机_SlideRelease" type="MeshInstance3D" parent="玩家_Player/俯仰_PitchPivot/Camera3D/手枪_Pistol/武器后坐_RecoilPivot" unique_id=823546555]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.016, -0.008, -0.03)
 material_override = SubResource("Mat_frame")
 mesh = SubResource("Mesh_slide_release")
 
-[node name="枪口_Barrel" type="MeshInstance3D" parent="Camera3D/手枪_Pistol" unique_id=706115858]
+[node name="枪口_Barrel" type="MeshInstance3D" parent="玩家_Player/俯仰_PitchPivot/Camera3D/手枪_Pistol/武器后坐_RecoilPivot" unique_id=588998500]
 transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0.012999997, -0.16584781)
 material_override = SubResource("Mat_barrel")
 mesh = SubResource("Mesh_barrel")
 
-[node name="套筒_Slide" type="Node3D" parent="Camera3D/手枪_Pistol" unique_id=1195674541]
+[node name="套筒_Slide" type="Node3D" parent="玩家_Player/俯仰_PitchPivot/Camera3D/手枪_Pistol/武器后坐_RecoilPivot" unique_id=577226539]
 
-[node name="套筒本体_SlideMesh" type="MeshInstance3D" parent="Camera3D/手枪_Pistol/套筒_Slide" unique_id=345581965]
+[node name="套筒本体_SlideMesh" type="MeshInstance3D" parent="玩家_Player/俯仰_PitchPivot/Camera3D/手枪_Pistol/武器后坐_RecoilPivot/套筒_Slide" unique_id=920670838]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.012999997, -0.07134777)
 material_override = SubResource("Mat_slide")
 mesh = SubResource("Mesh_slide")
 
-[node name="准星_FrontSight" type="MeshInstance3D" parent="Camera3D/手枪_Pistol/套筒_Slide" unique_id=1985561121]
+[node name="准星_FrontSight" type="MeshInstance3D" parent="玩家_Player/俯仰_PitchPivot/Camera3D/手枪_Pistol/武器后坐_RecoilPivot/套筒_Slide" unique_id=989086956]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.029, -0.1413478)
 material_override = SubResource("Mat_slide")
 mesh = SubResource("Mesh_front_sight")
 
-[node name="照门左_RearSightLeft" type="MeshInstance3D" parent="Camera3D/手枪_Pistol/套筒_Slide" unique_id=2011612036]
+[node name="照门左_RearSightLeft" type="MeshInstance3D" parent="玩家_Player/俯仰_PitchPivot/Camera3D/手枪_Pistol/武器后坐_RecoilPivot/套筒_Slide" unique_id=537067412]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.006500013, 0.030000001, 0.0116521865)
 material_override = SubResource("Mat_slide")
 mesh = SubResource("Mesh_rear_sight")
 
-[node name="照门右_RearSightRight" type="MeshInstance3D" parent="Camera3D/手枪_Pistol/套筒_Slide" unique_id=1157597474]
+[node name="照门右_RearSightRight" type="MeshInstance3D" parent="玩家_Player/俯仰_PitchPivot/Camera3D/手枪_Pistol/武器后坐_RecoilPivot/套筒_Slide" unique_id=1257673460]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.006499991, 0.030000001, 0.0116521865)
 material_override = SubResource("Mat_slide")
 mesh = SubResource("Mesh_rear_sight")
 
-[node name="动画播放器_AnimationPlayer" type="AnimationPlayer" parent="Camera3D/手枪_Pistol" unique_id=20410176]
+[node name="动画播放器_AnimationPlayer" type="AnimationPlayer" parent="玩家_Player/俯仰_PitchPivot/Camera3D/手枪_Pistol/武器后坐_RecoilPivot" unique_id=1781750712]
 libraries/ = SubResource("AnimationLibrary_1")
 
-[node name="开火音效_FireSound" type="AudioStreamPlayer" parent="Camera3D/手枪_Pistol"]
+[node name="开火音效_FireSound" type="AudioStreamPlayer" parent="玩家_Player/俯仰_PitchPivot/Camera3D/手枪_Pistol/武器后坐_RecoilPivot" unique_id=1786066878]
 stream = ExtResource("2_sfx")
 volume_db = -15.0
 max_polyphony = 4
+
+[node name="枪口火焰_MuzzleFlash" type="Node3D" parent="玩家_Player/俯仰_PitchPivot/Camera3D/手枪_Pistol/武器后坐_RecoilPivot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.013, -0.19)
+
+[node name="闪光_FlashMesh" type="MeshInstance3D" parent="玩家_Player/俯仰_PitchPivot/Camera3D/手枪_Pistol/武器后坐_RecoilPivot/枪口火焰_MuzzleFlash"]
+visible = false
+mesh = SubResource("Mesh_muzzle_flash")
+
+[node name="闪光灯_FlashLight" type="OmniLight3D" parent="玩家_Player/俯仰_PitchPivot/Camera3D/手枪_Pistol/武器后坐_RecoilPivot/枪口火焰_MuzzleFlash"]
+visible = false
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.06)
+light_color = Color(1, 0.88, 0.6, 1)
+light_energy = 0.0
+omni_range = 4.0
