@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://cgps1qkfntwf5"]
 
 [ext_resource type="Script" uid="uid://w8r2da4itbi3" path="res://gun.gd" id="1_gun"]
+[ext_resource type="AudioStream" path="res://sfx_pistol_fire.mp3" id="2_sfx"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_sky"]
 sky_top_color = Color(0.45, 0.58, 0.78, 1)
@@ -119,7 +120,7 @@ light_energy = 3.0
 omni_range = 2.0
 
 [node name="手枪_Pistol" type="Node3D" parent="Camera3D" unique_id=2086631192]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.13, 0.038, -0.19)
+transform = Transform3D(0.99026805, 0, -0.1391731, 0, 1, 0, 0.1391731, 0, 0.99026805, 0.13, -0.196, -0.46)
 
 [node name="枪身_Frame" type="MeshInstance3D" parent="Camera3D/手枪_Pistol" unique_id=468711689]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.013, -0.072)
@@ -195,3 +196,8 @@ mesh = SubResource("Mesh_rear_sight")
 
 [node name="动画播放器_AnimationPlayer" type="AnimationPlayer" parent="Camera3D/手枪_Pistol" unique_id=20410176]
 libraries/ = SubResource("AnimationLibrary_1")
+
+[node name="开火音效_FireSound" type="AudioStreamPlayer" parent="Camera3D/手枪_Pistol"]
+stream = ExtResource("2_sfx")
+volume_db = -15.0
+max_polyphony = 4
