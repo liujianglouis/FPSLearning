@@ -1,0 +1,197 @@
+[gd_scene format=3 uid="uid://cgps1qkfntwf5"]
+
+[ext_resource type="Script" uid="uid://w8r2da4itbi3" path="res://gun.gd" id="1_gun"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_sky"]
+sky_top_color = Color(0.45, 0.58, 0.78, 1)
+sky_horizon_color = Color(0.82, 0.85, 0.9, 1)
+ground_bottom_color = Color(0.3, 0.3, 0.32, 1)
+ground_horizon_color = Color(0.7, 0.7, 0.72, 1)
+
+[sub_resource type="Sky" id="Sky_main"]
+sky_material = SubResource("ProceduralSkyMaterial_sky")
+
+[sub_resource type="Environment" id="Environment_main"]
+background_mode = 2
+sky = SubResource("Sky_main")
+ambient_light_source = 3
+ambient_light_energy = 1.2
+
+[sub_resource type="StandardMaterial3D" id="Mat_frame"]
+albedo_color = Color(0.05, 0.05, 0.055, 1)
+metallic = 0.05
+roughness = 0.75
+
+[sub_resource type="BoxMesh" id="Mesh_frame"]
+size = Vector3(0.026, 0.026, 0.188)
+
+[sub_resource type="BoxMesh" id="Mesh_rail"]
+size = Vector3(0.018, 0.008, 0.07)
+
+[sub_resource type="BoxMesh" id="Mesh_guard_front"]
+size = Vector3(0.024, 0.042, 0.012)
+
+[sub_resource type="BoxMesh" id="Mesh_guard_bottom"]
+size = Vector3(0.024, 0.012, 0.056)
+
+[sub_resource type="BoxMesh" id="Mesh_guard_rear"]
+size = Vector3(0.024, 0.038, 0.014)
+
+[sub_resource type="BoxMesh" id="Mesh_trigger"]
+size = Vector3(0.008, 0.028, 0.008)
+
+[sub_resource type="StandardMaterial3D" id="Mat_grip"]
+albedo_color = Color(0.06, 0.06, 0.065, 1)
+metallic = 0.05
+roughness = 0.9
+
+[sub_resource type="BoxMesh" id="Mesh_grip"]
+size = Vector3(0.026, 0.111645505, 0.055)
+
+[sub_resource type="BoxMesh" id="Mesh_mag_base"]
+size = Vector3(0.03, 0.012, 0.062)
+
+[sub_resource type="BoxMesh" id="Mesh_slide_release"]
+size = Vector3(0.006, 0.008, 0.024)
+
+[sub_resource type="StandardMaterial3D" id="Mat_barrel"]
+albedo_color = Color(0.35, 0.35, 0.38, 1)
+metallic = 0.95
+roughness = 0.22
+
+[sub_resource type="CylinderMesh" id="Mesh_barrel"]
+top_radius = 0.009
+bottom_radius = 0.009
+height = 0.005
+
+[sub_resource type="StandardMaterial3D" id="Mat_slide"]
+albedo_color = Color(0.1, 0.1, 0.12, 1)
+metallic = 0.85
+roughness = 0.45
+
+[sub_resource type="BoxMesh" id="Mesh_slide"]
+size = Vector3(0.03, 0.026, 0.186)
+
+[sub_resource type="BoxMesh" id="Mesh_front_sight"]
+size = Vector3(0.005, 0.006, 0.004)
+
+[sub_resource type="BoxMesh" id="Mesh_rear_sight"]
+size = Vector3(0.007, 0.008, 0.005)
+
+[sub_resource type="Animation" id="Animation_fire"]
+resource_name = "fire"
+length = 0.12
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("套筒_Slide:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.02, 0.06, 0.12),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [Vector3(0, 0, 0), Vector3(0, 0, 0.03), Vector3(0, 0, 0), Vector3(0, 0, 0)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_1"]
+_data = {
+&"fire": SubResource("Animation_fire")
+}
+
+[node name="Main" type="Node3D" unique_id=304939665]
+script = ExtResource("1_gun")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1625544435]
+environment = SubResource("Environment_main")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=2074702203]
+transform = Transform3D(0.86603, 0, 0.5, 0.35355, 0.70711, -0.61237, -0.35355, 0.70711, 0.61237, 0, 6, 0)
+light_energy = 1.3
+shadow_enabled = true
+
+[node name="Camera3D" type="Camera3D" parent="." unique_id=286525352]
+current = true
+
+[node name="ViewModelLight" type="OmniLight3D" parent="Camera3D" unique_id=1789420482]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.35, 0.3, 0.15)
+light_energy = 3.0
+omni_range = 2.0
+
+[node name="手枪_Pistol" type="Node3D" parent="Camera3D" unique_id=2086631192]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.13, 0.038, -0.19)
+
+[node name="枪身_Frame" type="MeshInstance3D" parent="Camera3D/手枪_Pistol" unique_id=468711689]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.013, -0.072)
+material_override = SubResource("Mat_frame")
+mesh = SubResource("Mesh_frame")
+
+[node name="导轨_Rail" type="MeshInstance3D" parent="Camera3D/手枪_Pistol" unique_id=340445220]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.03, -0.13)
+material_override = SubResource("Mat_frame")
+mesh = SubResource("Mesh_rail")
+
+[node name="护圈前_TriggerGuardFront" type="MeshInstance3D" parent="Camera3D/手枪_Pistol" unique_id=177778313]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.047, -0.07)
+material_override = SubResource("Mat_frame")
+mesh = SubResource("Mesh_guard_front")
+
+[node name="护圈底_TriggerGuardBottom" type="MeshInstance3D" parent="Camera3D/手枪_Pistol" unique_id=606953392]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.063, -0.042)
+material_override = SubResource("Mat_frame")
+mesh = SubResource("Mesh_guard_bottom")
+
+[node name="护圈后_TriggerGuardRear" type="MeshInstance3D" parent="Camera3D/手枪_Pistol" unique_id=2093992061]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.045, -0.014)
+material_override = SubResource("Mat_frame")
+mesh = SubResource("Mesh_guard_rear")
+
+[node name="扳机_Trigger" type="MeshInstance3D" parent="Camera3D/手枪_Pistol" unique_id=2126670935]
+transform = Transform3D(1, 0, 0, 0, 0.8630746, -0.50507647, 0, 0.50507647, 0.8630746, 0, -0.035805866, -0.03606949)
+material_override = SubResource("Mat_frame")
+mesh = SubResource("Mesh_trigger")
+
+[node name="握把_Grip" type="MeshInstance3D" parent="Camera3D/手枪_Pistol" unique_id=968946390]
+transform = Transform3D(1, 0, 0, 0, 0.89100736, 0.45398885, 0, -0.45398885, 0.89100736, 0, -0.060811862, 0.015356556)
+material_override = SubResource("Mat_grip")
+mesh = SubResource("Mesh_grip")
+
+[node name="弹匣底板_MagBase" type="MeshInstance3D" parent="Camera3D/手枪_Pistol" unique_id=1727472322]
+transform = Transform3D(1, 0, 0, 0, 0.8910111, 0.45399082, 0, -0.45399082, 0.8910111, 0, -0.113053046, 0.04174637)
+material_override = SubResource("Mat_frame")
+mesh = SubResource("Mesh_mag_base")
+
+[node name="空仓挂机_SlideRelease" type="MeshInstance3D" parent="Camera3D/手枪_Pistol" unique_id=1117963883]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.016, -0.008, -0.03)
+material_override = SubResource("Mat_frame")
+mesh = SubResource("Mesh_slide_release")
+
+[node name="枪口_Barrel" type="MeshInstance3D" parent="Camera3D/手枪_Pistol" unique_id=706115858]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0.012999997, -0.16584781)
+material_override = SubResource("Mat_barrel")
+mesh = SubResource("Mesh_barrel")
+
+[node name="套筒_Slide" type="Node3D" parent="Camera3D/手枪_Pistol" unique_id=1195674541]
+
+[node name="套筒本体_SlideMesh" type="MeshInstance3D" parent="Camera3D/手枪_Pistol/套筒_Slide" unique_id=345581965]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.012999997, -0.07134777)
+material_override = SubResource("Mat_slide")
+mesh = SubResource("Mesh_slide")
+
+[node name="准星_FrontSight" type="MeshInstance3D" parent="Camera3D/手枪_Pistol/套筒_Slide" unique_id=1985561121]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.029, -0.1413478)
+material_override = SubResource("Mat_slide")
+mesh = SubResource("Mesh_front_sight")
+
+[node name="照门左_RearSightLeft" type="MeshInstance3D" parent="Camera3D/手枪_Pistol/套筒_Slide" unique_id=2011612036]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.006500013, 0.030000001, 0.0116521865)
+material_override = SubResource("Mat_slide")
+mesh = SubResource("Mesh_rear_sight")
+
+[node name="照门右_RearSightRight" type="MeshInstance3D" parent="Camera3D/手枪_Pistol/套筒_Slide" unique_id=1157597474]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.006499991, 0.030000001, 0.0116521865)
+material_override = SubResource("Mat_slide")
+mesh = SubResource("Mesh_rear_sight")
+
+[node name="动画播放器_AnimationPlayer" type="AnimationPlayer" parent="Camera3D/手枪_Pistol" unique_id=20410176]
+libraries/ = SubResource("AnimationLibrary_1")
